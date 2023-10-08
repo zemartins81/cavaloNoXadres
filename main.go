@@ -2,8 +2,11 @@ package main
 
 import "fmt"
 
-func main() {
+type Position struct {
+	x, y int
+}
 
+func main() {
 	// Recebe o tamanho do tabuleiro
 	var boardSize int
 	fmt.Print("Entre com o tamanho do tabuleiro: ")
@@ -17,95 +20,71 @@ func main() {
 	fmt.Scan(&startY)
 
 	// Lista de movimentos
-	var moves []string
+	var moves []Position
+
+	// Precompute possible next moves for each position
+	possibleMoves := make(map[Position][]Position)
+	for x := 1; x <= boardSize; x++ {
+		for y := 1; y <= boardSize; y++ {
+			possibleMoves[Position{x, y}] = calculatePossibleMoves(x, y, boardSize)
+		}
+	}
 
 	// Loop até chegar no outro lado
 	for {
 		// Encontra próximo movimento possível
-		nextMove := findNextMove(startX, startY, boardSize)
+		nextMoves := possibleMoves[Position{startX, startY}]
 
 		// Se não tem mais movimento, acabou
-		if nextMove == "" {
+		if len(nextMoves) == 0 {
 			break
 		}
 
 		// Marca próxima posição como visitada
-		x, y := parsePos(nextMove)
-
-		// Adiciona movimento à lista
+		nextMove := nextMoves[0]
 		moves = append(moves, nextMove)
 
-		if y == boardSize {
+		if nextMove.y == boardSize {
 			break
 		}
-		// Atualiza posição atual
-		startX = x
-		startY = y
 
+		// Atualiza posição atual
+		startX = nextMove.x
+		startY = nextMove.y
 	}
 
 	// Exibe movimentos
 	fmt.Println(moves)
 }
 
-// Encontra o próximo movimento possível
-func findNextMove(x, y, boardSize int) string {
+// calculatePossibleMoves calculates all the possible next moves for a given position
+func calculatePossibleMoves(x, y, boardSize int) []Position {
+	var moves []Position
 
-	nextY := y + 2
-	nextX := x + 1
-
-	if isValid(nextX, nextY, boardSize) {
-		return fmt.Sprintf("%d%d", nextX, nextY)
+	possibleOffsets := []Position{
+		{1, 2},
+		{-1, 2},
+		{-2, 1},
+		{2, 1},
+		{-2, -1},
+		{2, -1},
+		{-1, -2},
+		{1, -2},
 	}
 
+	for _, offset := range possibleOffsets {
+		nextX := x + offset.x
+		nextY := y + offset.y
 
-	nextY = y + 2
-	nextX = x - 1
-
-	if isValid(nextX, nextY, boardSize) {
-		return fmt.Sprintf("%d%d", nextX, nextY)
+		if isValid(nextX, nextY, boardSize) {
+			moves = append(moves, Position{nextX, nextY})
+		}
 	}
 
-	nextY = y + 1
-	nextX = x - 2
-
-	if isValid(nextX, nextY, boardSize) {
-		return fmt.Sprintf("%d%d", nextX, nextY)
-	}
-
-	nextY = y - 1
-	nextX = x + 2
-
-	if isValid(nextX, nextY, boardSize) {
-		return fmt.Sprintf("%d%d", nextX, nextY)
-	}
-
-	nextY = y - 1
-	nextX = x - 2
-
-	if isValid(nextX, nextY, boardSize) {
-		return fmt.Sprintf("%d%d", nextX, nextY)
-	}
-
-	return ""
+	return moves
 }
 
 // Verifica se a posição é válida
 func isValid(x, y, boardSize int) bool {
-	if x <= 0 || x > boardSize {
-		return false
-	}
-
-	if y <= 0 || y > boardSize {
-		return false
-	}
-
-	return true
-}
-
-// Converte posição como "34" para x=3, y=4
-func parsePos(pos string) (int, int) {
-	x := int(pos[0] - '0')
-	y := int(pos[1] - '0')
-	return x, y
+	return x >= 1 && x <= boardSize && y >= 1 && y <= boardSize
 }
